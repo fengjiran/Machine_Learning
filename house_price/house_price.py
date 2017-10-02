@@ -3,12 +3,32 @@ from __future__ import print_function
 
 import os
 import numpy as np
-import pandas as pd
+import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
+import pandas as pd
+from pandas.tools.plotting import scatter_matrix
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.preprocessing import Imputer
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
+
+plt.rcParams['axes.labelsize'] = 14
+plt.rcParams['xtick.labelsize'] = 12
+plt.rcParams['ytick.labelsize'] = 12
+
+# Where to save the figures
+PROJECT_ROOT_DIR = "E:\\Machine_Learning"
+CHAPTER_ID = "end_to_end_project"
+
+
+def save_fig(fig_id, tight_layout=True):
+    path = os.path.join(PROJECT_ROOT_DIR, 'images', CHAPTER_ID)
+    if not os.path.exists(path):
+        os.makedirs(path)
+    print('Saving figure', fig_id)
+    if tight_layout:
+        plt.tight_layout()
+    plt.savefig(os.path.join(path, fig_id + '.png'), format='png', dpi=300)
 
 
 def load_housing_data(path='E:\\Machine_Learning\\house_price'):
@@ -33,6 +53,9 @@ if __name__ == '__main__':
     print(house['ocean_proximity'].value_counts())
     print(house.describe())
 
+    house.hist(bins=50, figsize=(20, 15))
+    save_fig('attribute_histogram_plots')
+
     # plt.hist(house['median_income'], bins=50)
     # plt.show()
 
@@ -52,16 +75,65 @@ if __name__ == '__main__':
         dataset.drop(['income_cat'], axis=1, inplace=True)
 
     house = strat_train_set.copy()
+    house.plot(kind='scatter', x='longitude', y='latitude')
+    save_fig("bad_visualization_plot")
+
+    house.plot(kind='scatter', x='longitude', y='latitude', alpha=0.1)
+    save_fig("better_visualization_plot")
 
     house.plot(kind='scatter', x='longitude', y='latitude', alpha=0.4,
-               s=house['population'] / 100, label='population',
+               s=house['population'] / 100, label='population', figsize=(10, 7),
                c='median_house_value', cmap=plt.get_cmap('jet'), colorbar=True)
 
-    # house.hist(bins=50, figsize=(20, 15))
+    plt.legend()
+    save_fig("housing_prices_scatterplot")
+
+    california_img = mpimg.imread(PROJECT_ROOT_DIR + '\\images\\end_to_end_project\\california.png')
+    ax = house.plot(kind="scatter", x="longitude", y="latitude", figsize=(10, 7),
+                    s=house['population'] / 100, label="Population",
+                    c="median_house_value", cmap=plt.get_cmap("jet"),
+                    colorbar=False, alpha=0.4)
+    plt.imshow(california_img, extent=[-124.55, -113.80, 32.45, 42.05], alpha=0.5)
+    plt.ylabel("Latitude", fontsize=14)
+    plt.xlabel("Longitude", fontsize=14)
+
+    prices = house["median_house_value"]
+    tick_values = np.linspace(prices.min(), prices.max(), 11)
+    cbar = plt.colorbar()
+    cbar.ax.set_yticklabels(["$%dk" % (round(v / 1000)) for v in tick_values], fontsize=14)
+    cbar.set_label('Median House Value', fontsize=16)
+
+    plt.legend(fontsize=16)
+    save_fig("california_housing_prices_plot")
     plt.show()
 
     corr_matrix = house.corr()
-    print(corr_matrix)
+    # print(corr_matrix)
+    attributes = ['median_house_value', 'median_income', 'total_rooms', 'housing_median_age']
+    scatter_matrix(house[attributes], figsize=(12, 8))
+    save_fig('scatter_matrix_plot')
 
-    # train_set, test_set = split_train_test(house, 0.2)
-    # print(len(train_set), len(test_set))
+    house.plot(kind='scatter', x='median_income', y='median_house_value', alpha=0.1)
+    plt.axis([0, 16, 0, 550000])
+    save_fig('income_vs_house_value_scatterplot')
+
+    # Data clean
+    imputer = Imputer(strategy='median')
+    house_num = house.drop('ocean_proximity', axis=1)
+
+    # The imputer class has simply computed the median of each attribute
+    # and stored the results in its statistics_ instance variable.
+    imputer.fit(house_num)
+    # print(imputer.statistics_)
+
+    X = imputer.transform(house_num)  # X is a plain numpy array
+    house_tr = pd.DataFrame(X, columns=house_num.columns)  # Transform X to a Pandas DataFrame
+
+    # Handing text anf categorical sttributes
+    encoder = LabelEncoder()
+    house_cat = house['ocean_proximity']
+    house_cat_encoded = encoder.fit_transform(house_cat)
+    # print(house_cat_encoded)
+
+    encoder1 = OneHotEncoder()
+    house_cat_1hot = encoder.fit_transform(house_cat_encoded.reshape(-1, 1))
