@@ -129,7 +129,7 @@ if __name__ == '__main__':
     X = imputer.transform(house_num)  # X is a plain numpy array
     house_tr = pd.DataFrame(X, columns=house_num.columns)  # Transform X to a Pandas DataFrame
 
-    # Handing text anf categorical sttributes
+    # Handing text and categorical sttributes
     encoder = LabelEncoder()
     house_cat = house['ocean_proximity']
     house_cat_encoded = encoder.fit_transform(house_cat)
