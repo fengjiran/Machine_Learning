@@ -80,3 +80,4 @@ class Perceptron(object):
 
 if __name__ == '__main__':
     print('Start read data')
+    print('done')
